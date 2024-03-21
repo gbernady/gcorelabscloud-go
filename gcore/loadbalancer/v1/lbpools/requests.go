@@ -111,9 +111,9 @@ type CreateOpts struct {
 	ListenerID           string                        `json:"listener_id,omitempty"`
 	HealthMonitor        *CreateHealthMonitorOpts      `json:"healthmonitor,omitempty"`
 	SessionPersistence   *CreateSessionPersistenceOpts `json:"session_persistence,omitempty"`
-	TimeoutClientData    int                           `json:"timeout_client_data"`
-	TimeoutMemberData    int                           `json:"timeout_member_data"`
-	TimeoutMemberConnect int                           `json:"timeout_member_connect"`
+	TimeoutClientData    *int                          `json:"timeout_client_data,omitempty"`
+	TimeoutMemberData    *int                          `json:"timeout_member_data,omitempty"`
+	TimeoutMemberConnect *int                          `json:"timeout_member_connect,omitempty"`
 }
 
 // ToLBPoolCreateMap builds a request body from CreateOpts.
@@ -164,9 +164,9 @@ type UpdateOpts struct {
 	LBPoolAlgorithm      types.LoadBalancerAlgorithm   `json:"lb_algorithm,omitempty"`
 	HealthMonitor        *CreateHealthMonitorOpts      `json:"healthmonitor,omitempty"`
 	SessionPersistence   *CreateSessionPersistenceOpts `json:"session_persistence,omitempty"`
-	TimeoutClientData    int                           `json:"timeout_client_data,omitempty"`
-	TimeoutMemberData    int                           `json:"timeout_member_data,omitempty"`
-	TimeoutMemberConnect int                           `json:"timeout_member_connect,omitempty"`
+	TimeoutClientData    *int                          `json:"timeout_client_data,omitempty"`
+	TimeoutMemberData    *int                          `json:"timeout_member_data,omitempty"`
+	TimeoutMemberConnect *int                          `json:"timeout_member_connect,omitempty"`
 }
 
 // ToLBPoolUpdateMap builds a request body from UpdateOpts.
@@ -198,7 +198,7 @@ type UnsetOptsBuilder interface {
 
 // UnsetOpts represents options used to unset lbpool fields.
 type UnsetOpts struct {
-	SessionPersistence  bool  `json:"session_persistence"`
+	SessionPersistence bool `json:"session_persistence"`
 }
 
 // ToLBPoolUnsetMap builds a request body from UnsetOpts.

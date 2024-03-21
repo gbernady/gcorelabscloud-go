@@ -487,22 +487,27 @@ var lbpoolCreateSubCommand = cli.Command{
 			return cli.NewExitError(fmt.Errorf("either --loadbalancer or --listener should be set"), 1)
 		}
 
-		timeoutClientData := c.Int("timeout-client-data")
-		timeoutMemberConnect := c.Int("timeout-member-connect")
-		timeoutMemberData := c.Int("timeout-member-data")
-
 		opts := lbpools.CreateOpts{
-			Name:                 c.String("name"),
-			Protocol:             pt,
-			LBPoolAlgorithm:      lba,
-			Members:              members,
-			LoadBalancerID:       c.String("loadbalancer"),
-			ListenerID:           c.String("listener"),
-			HealthMonitor:        hm,
-			SessionPersistence:   sp,
-			TimeoutClientData:    timeoutClientData,
-			TimeoutMemberConnect: timeoutMemberConnect,
-			TimeoutMemberData:    timeoutMemberData,
+			Name:               c.String("name"),
+			Protocol:           pt,
+			LBPoolAlgorithm:    lba,
+			Members:            members,
+			LoadBalancerID:     c.String("loadbalancer"),
+			ListenerID:         c.String("listener"),
+			HealthMonitor:      hm,
+			SessionPersistence: sp,
+		}
+		if c.IsSet("timeout-client-data") {
+			timeoutClientData := c.Int("timeout-client-data")
+			opts.TimeoutClientData = &timeoutClientData
+		}
+		if c.IsSet("timeout-member-connect") {
+			timeoutMemberConnect := c.Int("timeout-member-connect")
+			opts.TimeoutMemberConnect = &timeoutMemberConnect
+		}
+		if c.IsSet("timeout-member-data") {
+			timeoutMemberData := c.Int("timeout-member-data")
+			opts.TimeoutMemberData = &timeoutMemberData
 		}
 
 		results, err := lbpools.Create(client, opts).Extract()
@@ -840,18 +845,24 @@ var lbpoolUpdateSubCommand = cli.Command{
 			return cli.NewExitError(err, 1)
 		}
 
-		timeoutClientData := c.Int("timeout-client-data")
-		timeoutMemberConnect := c.Int("timeout-member-connect")
-		timeoutMemberData := c.Int("timeout-member-data")
-
 		opts := lbpools.UpdateOpts{
-			Name:                 c.String("name"),
-			Members:              members,
-			HealthMonitor:        hm,
-			SessionPersistence:   sp,
-			TimeoutClientData:    timeoutClientData,
-			TimeoutMemberConnect: timeoutMemberConnect,
-			TimeoutMemberData:    timeoutMemberData,
+			Name:               c.String("name"),
+			Members:            members,
+			HealthMonitor:      hm,
+			SessionPersistence: sp,
+		}
+
+		if c.IsSet("timeout-client-data") {
+			timeoutClientData := c.Int("timeout-client-data")
+			opts.TimeoutClientData = &timeoutClientData
+		}
+		if c.IsSet("timeout-member-connect") {
+			timeoutMemberConnect := c.Int("timeout-member-connect")
+			opts.TimeoutMemberConnect = &timeoutMemberConnect
+		}
+		if c.IsSet("timeout-member-data") {
+			timeoutMemberData := c.Int("timeout-member-data")
+			opts.TimeoutMemberData = &timeoutMemberData
 		}
 
 		if lba != nil {

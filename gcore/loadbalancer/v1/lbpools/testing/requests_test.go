@@ -187,10 +187,13 @@ func TestCreate(t *testing.T) {
 				InstanceID:   Member2.InstanceID,
 			},
 		},
-		LoadBalancerID:     LoadBalancerID,
-		ListenerID:         ListenerID,
-		HealthMonitor:      nil,
-		SessionPersistence: nil,
+		LoadBalancerID:       LoadBalancerID,
+		ListenerID:           ListenerID,
+		HealthMonitor:        nil,
+		SessionPersistence:   nil,
+		TimeoutClientData:    &timeout,
+		TimeoutMemberData:    &timeout,
+		TimeoutMemberConnect: &timeout,
 	}
 
 	client := fake.ServiceTokenClient("lbpools", "v1")
@@ -245,7 +248,10 @@ func TestUpdate(t *testing.T) {
 	client := fake.ServiceTokenClient("lbpools", "v1")
 
 	opts := lbpools.UpdateOpts{
-		Name: LBPool1.Name,
+		Name:                 LBPool1.Name,
+		TimeoutClientData:    &timeout,
+		TimeoutMemberData:    &timeout,
+		TimeoutMemberConnect: &timeout,
 	}
 
 	tasks, err := lbpools.Update(client, LBPool1.ID, opts).Extract()

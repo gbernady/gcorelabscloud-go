@@ -208,6 +208,7 @@ var (
 	creatorTaskID  = "d8334c12-2881-4c4a-84ad-1b21fea73ad1"
 	width          = 1
 	protocolPort   = 80
+	timeout        = 0
 	Member1        = lbpools.PoolMember{
 		Address:      &ip1,
 		ID:           "65f4e0eb-7846-490e-b44d-726c8baf3c25",
