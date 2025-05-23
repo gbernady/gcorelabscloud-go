@@ -21,17 +21,12 @@ func listServersAction(c *cli.Context, newClient func(*cli.Context) (*gcorecloud
 		return cli.Exit(err, 1)
 	}
 
-	serversList := servers.List(gpuClient, clusterID)
-	if serversList.Err != nil {
-		return cli.Exit(serversList.Err, 1)
-	}
-
-	results, err := servers.ExtractServers(serversList)
+	servers, err := servers.ListAll(gpuClient, clusterID)
 	if err != nil {
 		return cli.Exit(err, 1)
 	}
 
-	utils.ShowResults(results, c.String("format"))
+	utils.ShowResults(servers, c.String("format"))
 	return nil
 }
 

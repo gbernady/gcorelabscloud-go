@@ -3,7 +3,10 @@ package clusters
 import (
 	"encoding/json"
 	"fmt"
+
 	gcorecloud "github.com/G-Core/gcorelabscloud-go"
+	"github.com/G-Core/gcorelabscloud-go/gcore/task/v1/tasks"
+	"github.com/G-Core/gcorelabscloud-go/pagination"
 )
 
 type commonResult struct {
@@ -141,14 +144,14 @@ func (i *InterfaceUnion) UnmarshalJSON(data []byte) error {
 
 // Volume represents a volume structure.
 type Volume struct {
-	Size                 int                      `json:"size"`
-	Type                 VolumeType               `json:"type"`
-	DeletedOnTermination bool                     `json:"deleted_on_termination"`
-	Metadata             []map[string]interface{} `json:"metadata"`
-	Name                 *string                  `json:"name"`
-	BootIndex            *int                     `json:"boot_index"`
-	ImageID              *string                  `json:"image_id"`
-	SnapshotID           *string                  `json:"snapshot_id"`
+	Size                 int        `json:"size"`
+	Type                 VolumeType `json:"type"`
+	DeletedOnTermination bool       `json:"deleted_on_termination"`
+	Name                 *string    `json:"name"`
+	BootIndex            *int       `json:"boot_index"`
+	ImageID              *string    `json:"image_id"`
+	SnapshotID           *string    `json:"snapshot_id"`
+	Tags                 []Tag      `json:"tags"`
 }
 
 type ClusterServerSettings struct {
@@ -164,10 +167,72 @@ type Cluster struct {
 	Name            string                   `json:"name"`
 	Status          ClusterStatusType        `json:"status"`
 	FlavorID        string                   `json:"flavor_id"`
-	Metadata        []map[string]interface{} `json:"metadata"`
 	ServersCount    int                      `json:"servers_count"`
 	CreatedAt       gcorecloud.JSONRFC3339Z  `json:"created_at"`
 	UpdatedAt       *gcorecloud.JSONRFC3339Z `json:"updated_at"`
 	ServersIDs      *[]string                `json:"servers_ids"`
 	ServersSettings ClusterServerSettings    `json:"servers_settings"`
+	Tags            []Tag                    `json:"tags"`
+}
+
+// Tag represents a cluster tag
+type Tag struct {
+	Key      string `json:"key"`
+	Value    string `json:"value"`
+	ReadOnly bool   `json:"read_only"`
+}
+
+// ClusterPage is the page returned by a pager when traversing over a collection of clusters.
+type ClusterPage struct {
+	pagination.LinkedPageBase
+}
+
+// NextPageURL is invoked when a paginated collection of AI Clusters has reached
+// the end of a page and the pager seeks to traverse over a new one. In order
+// to do this, it needs to construct the next page's URL.
+func (r ClusterPage) NextPageURL() (string, error) {
+	var s struct {
+		Links []gcorecloud.Link `json:"links"`
+	}
+	err := r.ExtractInto(&s)
+	if err != nil {
+		return "", err
+	}
+	return gcorecloud.ExtractNextURL(s.Links)
+}
+
+// IsEmpty checks whether a AIClusterPage struct is empty.
+func (r ClusterPage) IsEmpty() (bool, error) {
+	is, err := ExtractClusters(r)
+	return len(is) == 0, err
+}
+
+// ExtractClusters accepts a Page struct, specifically a ClusterPage struct,
+// and extracts the elements into a slice of Cluster structs. In other words,
+// a generic collection is mapped into a relevant slice.
+func ExtractClusters(r pagination.Page) ([]Cluster, error) {
+	var s []Cluster
+	err := ExtractClustersInto(r, &s)
+	return s, err
+}
+
+func ExtractClustersInto(r pagination.Page, v interface{}) error {
+	return r.(ClusterPage).Result.ExtractIntoSlicePtr(v, "results")
+}
+
+type ClusterTaskResult struct {
+	AIClusters []string `mapstructure:"ai_clusters"`
+	// etc
+}
+
+func ExtractClusterIDFromTask(task *tasks.Task) (string, error) {
+	var result ClusterTaskResult
+	err := gcorecloud.NativeMapToStruct(task.CreatedResources, &result)
+	if err != nil {
+		return "", fmt.Errorf("cannot decode GPU cluster information in task structure: %w", err)
+	}
+	if len(result.AIClusters) == 0 {
+		return "", fmt.Errorf("cannot decode GPU cluster information in task structure: empty list")
+	}
+	return result.AIClusters[0], nil
 }

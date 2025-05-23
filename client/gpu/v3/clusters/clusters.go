@@ -2,6 +2,7 @@ package clusters
 
 import (
 	"fmt"
+
 	gcorecloud "github.com/G-Core/gcorelabscloud-go"
 	"github.com/G-Core/gcorelabscloud-go/client/gpu/v3/client"
 	taskclient "github.com/G-Core/gcorelabscloud-go/client/tasks/v1/client"
@@ -13,6 +14,26 @@ import (
 
 	"strings"
 )
+
+func listClustersAction(c *cli.Context, newClient func(*cli.Context) (*gcorecloud.ServiceClient, error)) error {
+	gpuClient, err := newClient(c)
+	if err != nil {
+		_ = cli.ShowAppHelp(c)
+		return cli.Exit(err, 1)
+	}
+
+	clusters, err := clusters.ListAll(gpuClient)
+	if err != nil {
+		return cli.Exit(err, 1)
+	}
+
+	utils.ShowResults(clusters, c.String("format"))
+	return nil
+}
+
+func listVirtualClustersAction(c *cli.Context) error {
+	return listClustersAction(c, client.NewGPUVirtualClientV3)
+}
 
 func showClusterAction(c *cli.Context, newClient func(*cli.Context) (*gcorecloud.ServiceClient, error)) error {
 	clusterID := c.Args().First()
@@ -57,7 +78,9 @@ func deleteClusterAction(c *cli.Context, newClient func(*cli.Context) (*gcoreclo
 		return cli.Exit(err, 1)
 	}
 
-	results, err := clusters.Delete(gpuClient, clusterID).Extract()
+	opts := clusters.DeleteClusterOpts{}
+
+	results, err := clusters.Delete(gpuClient, clusterID, opts).Extract()
 	if err != nil {
 		return cli.Exit(err, 1)
 	}
@@ -414,6 +437,13 @@ func VirtualCommands() *cli.Command {
 		Usage:       "Manage virtual GPU images",
 		Description: "Commands for managing virtual GPU clusters",
 		Subcommands: []*cli.Command{
+			{
+				Name:        "list",
+				Usage:       "List virtual GPU clusters",
+				Description: "List all virtual GPU clusters",
+				Category:    "clusters",
+				Action:      listVirtualClustersAction,
+			},
 			{
 				Name:        "show",
 				Usage:       "Show virtual GPU cluster details",

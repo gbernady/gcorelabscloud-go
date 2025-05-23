@@ -1,10 +1,73 @@
 package clusters
 
 import (
+	"net/http"
+
 	gcorecloud "github.com/G-Core/gcorelabscloud-go"
 	"github.com/G-Core/gcorelabscloud-go/gcore/task/v1/tasks"
-	"net/http"
+	"github.com/G-Core/gcorelabscloud-go/pagination"
 )
+
+// ClusterActionOptsBuilder allows extensions to add parameters to the action request.
+type ClusterActionOptsBuilder interface {
+	ToClusterActionMap() (map[string]interface{}, error)
+}
+
+// ClusterActionOpts represents options used to run an action on a cluster.
+type ClusterActionOpts struct {
+	Action       ClusterActionType `json:"action" required:"true" validate:"required,enum"`
+	ServersCount *int              `json:"servers_count,omitempty"`
+	Tags         map[string]string `json:"tags,omitempty"`
+}
+
+// Validate checks if the ClusterActionOpts is valid.
+func (opts ClusterActionOpts) Validate() error {
+	return gcorecloud.ValidateStruct(opts)
+}
+
+// ToActionMap builds a request body from ClusterActionOpts.
+func (opts ClusterActionOpts) ToClusterActionMap() (map[string]interface{}, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
+	mp, err := gcorecloud.BuildRequestBody(opts, "")
+	if err != nil {
+		return nil, err
+	}
+	return mp, nil
+}
+
+// DeleteClusterOptsBuilder allows extensions to add parameters to delete cluster options.
+type DeleteClusterOptsBuilder interface {
+	ToClusterDeleteQuery() (string, error)
+}
+
+// DeleteClusterOpts specifies the parameters for the Delete method.
+type DeleteClusterOpts struct {
+	AllFloatingIPs      bool     `q:"all_floating_ips" validate:"omitempty,allowed_without=FloatingIPIDs"`
+	AllReservedFixedIPs bool     `q:"all_reserved_fixed_ips" validate:"omitempty,allowed_without=ReservedFixedIPIDs"`
+	AllVolumes          bool     `q:"all_volumes" validate:"omitempty,allowed_without=VolumeIDs"`
+	FloatingIPIDs       []string `q:"floating_ip_ids" validate:"omitempty,allowed_without=AllFloatingIPs,dive,uuid4" delimiter:"comma"`
+	ReservedFixedIPIDs  []string `q:"reserved_fixed_ip_ids" validate:"omitempty,allowed_without=AllReservedFixedIPs,dive,uuid4" delimiter:"comma"`
+	VolumeIDs           []string `q:"volume_ids" validate:"omitempty,allowed_without=AllVolumes,dive,uuid4" delimiter:"comma"`
+}
+
+// Validate checks if the provided options are valid.
+func (opts DeleteClusterOpts) Validate() error {
+	return gcorecloud.ValidateStruct(opts)
+}
+
+// ToDeleteClusterActionMap builds a request body from DeleteInstanceOpts.
+func (opts DeleteClusterOpts) ToClusterDeleteQuery() (string, error) {
+	if err := opts.Validate(); err != nil {
+		return "", err
+	}
+	q, err := gcorecloud.BuildQueryString(opts)
+	if err != nil {
+		return "", err
+	}
+	return q.String(), err
+}
 
 // RenameClusterOptsBuilder allows extensions to add parameters to rename cluster options.
 type RenameClusterOptsBuilder interface {
@@ -121,6 +184,29 @@ type CreateClusterOptsBuilder interface {
 	ToCreateClusterMap() (map[string]interface{}, error)
 }
 
+// List returns a pager for listing GPU clusters
+func List(client *gcorecloud.ServiceClient) pagination.Pager {
+	url := ClustersURL(client)
+	return pagination.NewPager(client, url, func(r pagination.PageResult) pagination.Page {
+		return ClusterPage{pagination.LinkedPageBase{PageResult: r}}
+	})
+}
+
+// ListAll is a convenience function that returns all GPU clusters
+func ListAll(client *gcorecloud.ServiceClient) ([]Cluster, error) {
+	pages, err := List(client).AllPages()
+	if err != nil {
+		return nil, err
+	}
+
+	all, err := ExtractClusters(pages)
+	if err != nil {
+		return nil, err
+	}
+
+	return all, nil
+}
+
 // Get retrieves a specific GPU cluster by its ID.
 func Get(client *gcorecloud.ServiceClient, clusterID string) (r GetResult) {
 	url := ClusterURL(client, clusterID)
@@ -129,8 +215,16 @@ func Get(client *gcorecloud.ServiceClient, clusterID string) (r GetResult) {
 }
 
 // Delete removes a specific GPU cluster by its ID.
-func Delete(client *gcorecloud.ServiceClient, clusterID string) (r tasks.Result) {
+func Delete(client *gcorecloud.ServiceClient, clusterID string, opts DeleteClusterOptsBuilder) (r tasks.Result) {
 	url := ClusterURL(client, clusterID)
+	if opts != nil {
+		query, err := opts.ToClusterDeleteQuery()
+		if err != nil {
+			r.Err = err
+			return
+		}
+		url += query
+	}
 	_, r.Err = client.DeleteWithResponse(url, &r.Body, nil) // nolint
 	return
 }
@@ -150,6 +244,7 @@ func Rename(client *gcorecloud.ServiceClient, clusterID string, opts RenameClust
 	return
 }
 
+// Create creates a new GPU cluster.
 func Create(client *gcorecloud.ServiceClient, opts CreateClusterOptsBuilder) (r tasks.Result) {
 	b, err := opts.ToCreateClusterMap()
 	if err != nil {
@@ -161,5 +256,18 @@ func Create(client *gcorecloud.ServiceClient, opts CreateClusterOptsBuilder) (r 
 	_, r.Err = client.Post(url, b, &r.Body, &gcorecloud.RequestOpts{
 		OkCodes: []int{http.StatusOK, http.StatusCreated},
 	})
+	return
+}
+
+// Action run an action on the GPU cluster.
+func Action(client *gcorecloud.ServiceClient, clusterID string, opts ClusterActionOptsBuilder) (r tasks.Result) {
+	b, err := opts.ToClusterActionMap()
+	if err != nil {
+		r.Err = err
+		return
+	}
+
+	url := ClusterActionURL(client, clusterID)
+	_, r.Err = client.Post(url, b, &r.Body, nil) // nolint
 	return
 }

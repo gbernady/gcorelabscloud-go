@@ -281,3 +281,81 @@ func (ct *ClusterStatusType) UnmarshalJSON(data []byte) error {
 func (ct *ClusterStatusType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(ct.String())
 }
+
+type ClusterActionType string
+
+const (
+	ClusterActionTypeHardReboot ClusterActionType = "hard_reboot"
+	ClusterActionTypeResize     ClusterActionType = "resize"
+	ClusterActionTypeSoftReboot ClusterActionType = "soft_reboot"
+	ClusterActionTypeStart      ClusterActionType = "start"
+	ClusterActionTypeStop       ClusterActionType = "stop"
+	ClusterActionTypeUpdateTags ClusterActionType = "update_tags"
+)
+
+func (t ClusterActionType) IsValid() error {
+	switch t {
+	case ClusterActionTypeHardReboot,
+		ClusterActionTypeResize,
+		ClusterActionTypeSoftReboot,
+		ClusterActionTypeStart,
+		ClusterActionTypeStop,
+		ClusterActionTypeUpdateTags:
+		return nil
+	}
+	return fmt.Errorf("invalid ClusterActionType type: %v", t)
+}
+
+func (t ClusterActionType) ValidOrNil() (*ClusterActionType, error) {
+	if t.String() == "" {
+		return nil, nil
+	}
+	err := t.IsValid()
+	if err != nil {
+		return &t, err
+	}
+	return &t, nil
+}
+
+func (t ClusterActionType) String() string {
+	return string(t)
+}
+
+func (t ClusterActionType) List() []ClusterActionType {
+	return []ClusterActionType{
+		ClusterActionTypeHardReboot,
+		ClusterActionTypeResize,
+		ClusterActionTypeSoftReboot,
+		ClusterActionTypeStart,
+		ClusterActionTypeStop,
+		ClusterActionTypeUpdateTags,
+	}
+}
+
+func (t ClusterActionType) StringList() []string {
+	var s []string
+	for _, v := range t.List() {
+		s = append(s, v.String())
+	}
+	return s
+}
+
+// UnmarshalJSON - implements Unmarshaler interface
+func (t *ClusterActionType) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	v := ClusterActionType(s)
+	err := v.IsValid()
+	if err != nil {
+		return err
+	}
+	*t = v
+	return nil
+}
+
+// MarshalJSON - implements Marshaler interface
+func (t *ClusterActionType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
+}
