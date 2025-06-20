@@ -39,6 +39,27 @@ func (s FileShareStatus) Validate() error {
 	return nil
 }
 
+// FileShareTypeName defines valid type names for FileShare.
+type FileShareTypeName string
+
+const (
+	TypeNameStandard FileShareTypeName = "standard"
+	TypeNameVAST     FileShareTypeName = "vast"
+)
+
+var validTypeNames = map[FileShareTypeName]struct{}{
+	TypeNameStandard: {},
+	TypeNameVAST:     {},
+}
+
+// Validate checks if the status is valid.
+func (t FileShareTypeName) Validate() error {
+	if _, ok := validTypeNames[t]; !ok {
+		return fmt.Errorf("invalid type name: %s", t)
+	}
+	return nil
+}
+
 type commonResult struct {
 	gcorecloud.Result
 }
@@ -87,6 +108,7 @@ type FileShare struct {
 	Status           FileShareStatus                 `json:"status"`
 	Size             int                             `json:"size"`
 	VolumeType       string                          `json:"volume_type"`
+	TypeName         FileShareTypeName               `json:"type_name"`
 	CreatedAt        *gcorecloud.JSONRFC3339MilliNoZ `json:"created_at"`
 	ShareNetworkName string                          `json:"share_network_name"`
 	NetworkID        *string                         `json:"network_id"`
